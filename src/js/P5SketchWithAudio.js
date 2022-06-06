@@ -6,9 +6,10 @@ import { range } from 'd3-array'
 import * as voronoi from 'd3-voronoi'
 import { Midi } from '@tonejs/midi'
 import PlayIcon from './functions/PlayIcon.js';
+import Grid from './classes/Grid.js';
 
-import audio from "../audio/circles-no-3.ogg";
-import midi from "../audio/circles-no-3.mid";
+import audio from "../audio/polygons-no-2.ogg";
+import midi from "../audio/polygons-no-2.mid";
 
 const d3 = Object.assign(
   {},
@@ -39,7 +40,8 @@ const P5SketchWithAudio = () => {
         p.loadMidi = () => {
             Midi.fromUrl(midi).then(
                 function(result) {
-                    const noteSet1 = result.tracks[5].notes; // Synth 1
+                    console.log(result);
+                    const noteSet1 = result.tracks[3].notes; // Synth 2 - Bass Guitar
                     p.scheduleCueSet(noteSet1, 'executeCueSet1');
                     p.audioLoaded = true;
                     document.getElementById("loader").classList.add("loading--complete");
@@ -69,26 +71,26 @@ const P5SketchWithAudio = () => {
             }
         } 
 
-        p.positions = [];
-        p.velocities = [];
-        p.voronoi = [];
-        p.totalShapes = 64;
+        p.grid = null;
 
         p.setup = () => {
             p.canvas = p.createCanvas(p.canvasWidth, p.canvasHeight);
             p.colorMode(p.HSB);
             p.background(0);
-            p.generateColourScheme()
+            p.generateColourScheme();
+            p.setupVoronoi();
 
-            p.positions = d3.range(p.totalShapes).map(_ => Float64Array.from({length: 2}, (_, i) => Math.random() * (i & 1 ? p.height : p.width)))
-            p.velocities = d3.range(p.totalShapes).map(_ => Float64Array.from({length: 2}, _ => RAND(-0.0001, 0.0001) ));
-            p.voronoi = d3.voronoi().extent([[0, 0],[p.width, p.height]]);
+            p.gridCanvas = p.createGraphics(p.canvasWidth, p.canvasHeight);
+            p.gridCanvas.noFill();
+            p.grid = new Grid(p.gridCanvas, 'rect', 4, 4);
+            p.grid.setStrokeWeight(32);
+            p.grid.draw();
         }
 
         p.draw = () => {
-            p.renderVoronoi();
             if(p.audioLoaded && p.song.isPlaying()){
-
+                p.renderVoronoi();
+                p.image(p.gridCanvas, 0, 0);
             }
         }
 
@@ -114,11 +116,8 @@ const P5SketchWithAudio = () => {
                 if (pos[0] >= p.width-4 || pos[0] <= 4) vel[0] *= -1 
                 if (pos[1] >= p.height-4 || pos[1] <= 4) vel[1] *= -1
                 
-                
                 // ALGO
                 let vertices = p.polygons[i].map(v => p.createVector(v[0], v[1]));
-                //rverts = roundCorners(vertices, 15);
-                
                 
                 // RENDER (cell)
                 p.push()
@@ -133,10 +132,29 @@ const P5SketchWithAudio = () => {
         }
 
         p.executeCueSet1 = (note) => {
-            p.background(p.random(255), p.random(255), p.random(255));
-            p.fill(p.random(255), p.random(255), p.random(255));
-            p.noStroke();
-            p.ellipse(p.width / 2, p.height / 2, p.width / 4, p.width / 4);
+            const { durationTicks, currentCue } = note;
+            if(durationTicks > 8000) {
+                p.totalShapes = p.totalShapes + 8;
+                p.generateColourScheme();
+                p.setupVoronoi();
+
+                if(currentCue > 13) {
+                    const newShape = p.random(['rect', 'triangle', 'hex', 'oct']);
+                    p.grid.setShape(newShape);
+                    p.grid.reDraw();
+                }
+            }
+        }
+
+        p.positions = [];
+        p.velocities = [];
+        p.voronoi = [];
+        p.totalShapes = 32;
+
+        p.setupVoronoi = () => {
+            p.positions = d3.range(p.totalShapes).map(_ => Float64Array.from({length: 2}, (_, i) => Math.random() * (i & 1 ? p.height : p.width)))
+            p.velocities = d3.range(p.totalShapes).map(_ => Float64Array.from({length: 2}, _ => RAND(-0.0001, 0.0001) ));
+            p.voronoi = d3.voronoi().extent([[0, 0],[p.width, p.height]]);
         }
 
         p.colourScheme = [];
