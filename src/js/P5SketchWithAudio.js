@@ -42,7 +42,11 @@ const P5SketchWithAudio = () => {
                 function(result) {
                     console.log(result);
                     const noteSet1 = result.tracks[3].notes; // Synth 2 - Bass Guitar
+                    const noteSet2 = result.tracks[6].notes; // Dr Rex 1 - 
+                    const controlChanges = Object.assign({},result.tracks[1].controlChanges); // Filter 1 - Mixer
                     p.scheduleCueSet(noteSet1, 'executeCueSet1');
+                    p.scheduleCueSet(noteSet2, 'executeCueSet2');
+                    p.scheduleCueSet(controlChanges[Object.keys(controlChanges)[0]], 'executeCueSet3');
                     p.audioLoaded = true;
                     document.getElementById("loader").classList.add("loading--complete");
                     document.getElementById("play-icon").classList.remove("fade-out");
@@ -82,15 +86,19 @@ const P5SketchWithAudio = () => {
 
             p.gridCanvas = p.createGraphics(p.canvasWidth, p.canvasHeight);
             p.gridCanvas.noFill();
-            p.grid = new Grid(p.gridCanvas, 'rect', 4, 4);
+            p.grid = new Grid(p.gridCanvas, 'rect', 3, 3);
             p.grid.setStrokeWeight(32);
             p.grid.draw();
         }
 
+        p.showGrid = false;
+
         p.draw = () => {
             if(p.audioLoaded && p.song.isPlaying()){
                 p.renderVoronoi();
-                p.image(p.gridCanvas, 0, 0);
+                if(p.showGrid) {
+                    p.image(p.gridCanvas, 0, 0);
+                } 
             }
         }
 
@@ -116,13 +124,16 @@ const P5SketchWithAudio = () => {
                 if (pos[0] >= p.width-4 || pos[0] <= 4) vel[0] *= -1 
                 if (pos[1] >= p.height-4 || pos[1] <= 4) vel[1] *= -1
                 
-                // ALGO
-                let vertices = p.polygons[i].map(v => p.createVector(v[0], v[1]));
-                
+                // ALGO + Colour
+                const vertices = p.polygons[i].map(v => p.createVector(v[0], v[1])), 
+                    fillColour = p.colourScheme[i];
+                fillColour.setAlpha(p.voronoiOpacity);
+                p.strokeWeight(4);
+                p.stroke(0, 0, 100, p.voronoiOpacity);
+                p.fill(fillColour);
+
                 // RENDER (cell)
-                p.push()
-                p.fill(p.colourScheme[i])
-                // p.noStroke()
+                p.push();
                 p.beginShape();
                 vertices.map(v => p.vertex(v.x, v.y));
                 p.endShape(p.CLOSE);
@@ -132,24 +143,38 @@ const P5SketchWithAudio = () => {
         }
 
         p.executeCueSet1 = (note) => {
-            const { durationTicks, currentCue } = note;
-            if(durationTicks > 8000) {
-                p.totalShapes = p.totalShapes + 8;
+            const { ticks, currentCue } = note;
+            if(ticks % 30720 === 0) {
+                p.totalShapes = p.totalShapes + 3;
                 p.generateColourScheme();
                 p.setupVoronoi();
-
-                if(currentCue > 13) {
-                    const newShape = p.random(['rect', 'triangle', 'hex', 'oct']);
-                    p.grid.setShape(newShape);
-                    p.grid.reDraw();
-                }
             }
+        }
+
+        p.currentGridShape = 'rect';
+
+        p.executeCueSet2 = (note) => {
+            const { midi, currentCue } = note;
+            if(![39, 44, 45, 49, 54].includes(midi)){
+                const shapes = ['rect', 'diamond', 'hex', 'hex90', 'oct'];
+                shapes.splice(shapes.indexOf(p.currentGridShape), 1)
+                p.showGrid = true;
+                p.currentGridShape = currentCue < 159 ? p.random(shapes) : 'rect';
+                p.grid.setShape(p.currentGridShape);
+                p.grid.reDraw();
+            }
+        }
+
+        p.voronoiOpacity = 0;
+
+        p.executeCueSet3 = (note) => {
+            p.voronoiOpacity = p.map(note.value, 0, 1, 0, 0.75);
         }
 
         p.positions = [];
         p.velocities = [];
         p.voronoi = [];
-        p.totalShapes = 32;
+        p.totalShapes = 3;
 
         p.setupVoronoi = () => {
             p.positions = d3.range(p.totalShapes).map(_ => Float64Array.from({length: 2}, (_, i) => Math.random() * (i & 1 ? p.height : p.width)))

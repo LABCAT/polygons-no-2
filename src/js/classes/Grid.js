@@ -49,6 +49,16 @@ export default class Grid {
                     j - cellHeight / 2 + this.weight / 2,
                 );
                 break;
+            case 'diamond':
+                this.canvas.push()
+                this.canvas.beginShape();
+                this.canvas.vertex(i, j - cellHeight / 2);
+                this.canvas.vertex(i + cellWidth / 2, j);
+                this.canvas.vertex(i, j + cellHeight / 2);
+                this.canvas.vertex(i - cellWidth / 2, j);
+                this.canvas.endShape(this.canvas.CLOSE);
+                this.canvas.pop()
+                break;
             case 'hex':
                 this.canvas.push()
                 this.canvas.beginShape();
@@ -58,6 +68,18 @@ export default class Grid {
                 this.canvas.vertex(i + cellWidth / 4, j + cellHeight / 2);
                 this.canvas.vertex(i - cellWidth / 4, j + cellHeight / 2);
                 this.canvas.vertex(i - cellWidth / 2, j);
+                this.canvas.endShape(this.canvas.CLOSE);
+                this.canvas.pop()
+                break;
+            case 'hex90':
+                this.canvas.push()
+                this.canvas.beginShape();
+                this.canvas.vertex(i, j - cellHeight / 2);
+                this.canvas.vertex(i + cellWidth / 2, j - cellHeight / 4);
+                this.canvas.vertex(i + cellWidth / 2, j + cellHeight / 4);
+                this.canvas.vertex(i, j + cellHeight / 2);
+                this.canvas.vertex(i - cellWidth / 2, j + cellHeight / 4);
+                this.canvas.vertex(i - cellWidth / 2, j - cellHeight / 4);
                 this.canvas.endShape(this.canvas.CLOSE);
                 this.canvas.pop()
                 break;
