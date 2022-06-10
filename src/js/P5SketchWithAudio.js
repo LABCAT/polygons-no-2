@@ -143,12 +143,9 @@ const P5SketchWithAudio = () => {
         }
 
         p.executeCueSet1 = (note) => {
-            const { ticks, currentCue } = note;
-            if(ticks % 30720 === 0) {
-                p.totalShapes = p.totalShapes + 3;
-                p.generateColourScheme();
-                p.setupVoronoi();
-            }
+            p.totalShapes = p.totalShapes + 3;
+            p.generateColourScheme();
+            p.setupVoronoi();
         }
 
         p.currentGridShape = 'rect';
